@@ -74,6 +74,18 @@
       letter-spacing: 0.12em;
       opacity: 0;
       animation: fadeIn 2s ease 1s forwards;
+      text-decoration: none;
+      transition: color 1.5s ease;
+      cursor: default;
+    }
+
+    .title.active {
+      color: #8b1a2b;
+      cursor: pointer;
+    }
+
+    .title.active:hover {
+      color: #a52238;
     }
 
     @keyframes fadeIn {
@@ -89,11 +101,11 @@
         <source src="rose.mp4" type="video/mp4">
       </video>
     </div>
-    <p class="title">À toi</p>
+    <a class="title active" id="title" href="card.html">À toi</a>
   </div>
 
   <script>
-    // --- ASCII (identical to 3D version) ---
+    // --- ASCII ---
     const asciiEl = document.getElementById('ascii');
     const chars = ' .·:;+*#@░▒▓█';
     let cols, rows;
@@ -165,8 +177,8 @@
     }
 
     requestAnimationFrame(animate);
-
     window.addEventListener('resize', calcGrid);
+
   </script>
 </body>
 </html>
