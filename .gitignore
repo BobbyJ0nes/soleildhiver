@@ -4,5 +4,7 @@
 
 # file type
 *.png
+*.svg
 
 # folder
+/assets

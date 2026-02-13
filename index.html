@@ -2,64 +2,240 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>soleil d'hiver</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌹</text></svg>">
-  <title>À Rose</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;1,300&display=swap');
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
       height: 100%;
-      background: #0a0a0a;
       overflow: hidden;
+      background: #050505;
+      -webkit-user-select: none;
+      user-select: none;
     }
 
-    .container {
+    #ascii {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      z-index: 1;
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      line-height: 10px;
+      letter-spacing: 2px;
+      color: #00ff41;
+      white-space: pre;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0.3;
+      pointer-events: none;
+    }
+
+    .frame {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 2;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      height: 100dvh;
+    }
+
+    .container {
+      width: min(70vw, 320px);
+      height: min(70vw, 320px);
+      background: #111;
+      border-radius: 2px;
+      overflow: hidden;
+      box-shadow: 0 0 60px rgba(0,0,0,0.8);
+      touch-action: none;
+    }
+
+    #scene {
       width: 100%;
-      padding: 2rem;
+      height: 100%;
+      display: block;
     }
 
-    video {
-      max-width: min(80vw, 400px);
-      max-height: 60dvh;
-      border-radius: 4px;
-      object-fit: contain;
-    }
-
-    .text {
+    .title {
+      margin-top: 1.5rem;
       font-family: 'Cormorant Garamond', serif;
       font-weight: 300;
       font-style: italic;
-      color: rgba(255, 255, 255, 0.6);
-      font-size: clamp(0.9rem, 2.5vw, 1.1rem);
-      margin-top: 2rem;
-      letter-spacing: 0.05em;
-      opacity: 0;
-      animation: fadeIn 2s ease 1s forwards;
-    }
-
-    @keyframes fadeIn {
-      to { opacity: 1; }
+      color: rgba(255,255,255,0.45);
+      font-size: clamp(0.85rem, 2.5vw, 1rem);
+      letter-spacing: 0.12em;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <video autoplay loop muted playsinline>
-      <source src="rose.mp4" type="video/mp4">
-    </video>
-    <p class="text">for you</p>
+  <div id="ascii"></div>
+  <div class="frame">
+    <div class="container">
+      <canvas id="scene"></canvas>
+    </div>
+    <p class="title">for you</p>
   </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/DRACOLoader.js"></script>
+  <script>
+    // --- SCENE (sized to container) ---
+    const container = document.querySelector('.container');
+    const canvas = document.getElementById('scene');
+    const w = container.clientWidth;
+    const h = container.clientHeight;
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(w, h);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+    camera.position.set(0, 0, 5);
+    camera.lookAt(0, 0, 0);
+
+    // --- LIGHTING ---
+    scene.add(new THREE.AmbientLight(0x332222, 0.8));
+
+    const keyLight = new THREE.DirectionalLight(0xffeedd, 1.0);
+    keyLight.position.set(2, 4, 4);
+    scene.add(keyLight);
+
+    const fillLight = new THREE.DirectionalLight(0x998888, 0.3);
+    fillLight.position.set(-3, -1, 2);
+    scene.add(fillLight);
+
+    // --- LOAD MODEL ---
+    const dracoLoader = new THREE.DRACOLoader();
+    dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/libs/draco/');
+
+    const gltfLoader = new THREE.GLTFLoader();
+    gltfLoader.setDRACOLoader(dracoLoader);
+
+    let model = null;
+
+    gltfLoader.load('piano_rose.glb', (gltf) => {
+      model = gltf.scene;
+
+      const box = new THREE.Box3().setFromObject(model);
+      const center = box.getCenter(new THREE.Vector3());
+      const size = box.getSize(new THREE.Vector3());
+      const scale = 2.8 / Math.max(size.x, size.y, size.z);
+
+      model.scale.setScalar(scale);
+
+      const scaledBox = new THREE.Box3().setFromObject(model);
+      const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
+      model.position.sub(scaledCenter);
+
+      scene.add(model);
+    },
+    undefined,
+    (error) => console.error('Load error:', error));
+
+    // --- ASCII ---
+    const asciiEl = document.getElementById('ascii');
+    const chars = ' .·:;+*#@░▒▓█';
+    let cols, rows;
+
+    function calcGrid() {
+      cols = Math.floor(window.innerWidth / 8);
+      rows = Math.floor(window.innerHeight / 10);
+    }
+    calcGrid();
+
+    let rotation = 0;
+
+    function updateAscii(time) {
+      let output = '';
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const nx = (x / cols - 0.5) * 2;
+          const ny = (y / rows - 0.5) * 2;
+          const dist = Math.sqrt(nx * nx + ny * ny);
+
+          const wave1 = Math.sin(nx * 3 + time * 0.8 + rotation * 2) * 0.5;
+          const wave2 = Math.cos(ny * 4 + time * 0.6 - rotation) * 0.4;
+          const wave3 = Math.sin((nx + ny) * 2.5 + time * 1.2 + rotation * 3) * 0.3;
+          const bloom = Math.max(0, 1 - dist * 1.2) * Math.sin(time * 0.5 + rotation) * 0.5;
+
+          const val = (wave1 + wave2 + wave3 + bloom) * 0.5 + 0.5;
+          const clamped = Math.max(0, Math.min(1, val));
+          output += chars[Math.floor(clamped * (chars.length - 1))];
+        }
+        output += '\n';
+      }
+      asciiEl.textContent = output;
+    }
+
+    // --- INTERACTION ---
+    let targetRotY = 0, targetRotX = 0;
+    let currentRotY = 0, currentRotX = 0;
+    let isDragging = false, lastX = 0, lastY = 0;
+    let autoRotate = true, autoTimer = null;
+
+    canvas.addEventListener('pointerdown', (e) => {
+      isDragging = true;
+      autoRotate = false;
+      clearTimeout(autoTimer);
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+
+    window.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      targetRotY += (e.clientX - lastX) * 0.008;
+      targetRotX += (e.clientY - lastY) * 0.005;
+      targetRotX = Math.max(-0.5, Math.min(1.2, targetRotX));
+      lastX = e.clientX;
+      lastY = e.clientY;
+    });
+
+    window.addEventListener('pointerup', () => {
+      isDragging = false;
+      autoTimer = setTimeout(() => { if (!isDragging) autoRotate = true; }, 3000);
+    });
+
+    // --- LOOP ---
+    const clock = new THREE.Clock();
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+
+      if (autoRotate) targetRotY += 0.003;
+
+      currentRotY += (targetRotY - currentRotY) * 0.06;
+      currentRotX += (targetRotX - currentRotX) * 0.06;
+      rotation = currentRotY;
+
+      if (model) {
+        model.rotation.y = currentRotY;
+        model.rotation.x = currentRotX;
+      }
+
+      updateAscii(t);
+      renderer.render(scene, camera);
+    }
+
+    animate();
+
+    // --- RESIZE ---
+    window.addEventListener('resize', () => {
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      renderer.setSize(w, h);
+      calcGrid();
+    });
+  </script>
 </body>
 </html>
