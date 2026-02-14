@@ -178,7 +178,11 @@
 
     requestAnimationFrame(animate);
     window.addEventListener('resize', calcGrid);
-
+    
+    const video = document.querySelector('video');
+video.play().catch(() => {
+  document.addEventListener('touchstart', () => video.play(), { once: true });
+});
   </script>
 </body>
 </html>
